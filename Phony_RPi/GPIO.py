@@ -1,6 +1,9 @@
 # Phony implementation of GPIO
 import pygame
+import os
+import json
 
+# Publicly available constants from the GPIO package
 BCM = 0
 IN = 0
 OUT = 0
@@ -8,34 +11,20 @@ PUD_UP = 0
 FALLING = 0
 RISING = 1
 
-NUMBER_DICT = dict()
-CALLBACKS = []
-CALLBACK_IDS = []
-
-RESPONSE_DICT = {
-    (18, 1): "Pretending to see a Raccoon",
-    (18, 0): "Pretending Raccoon left",
-    (20, 0): "Pretending to be done feeding Raccoon",
-    (20, 1): "Pretending to feed Raccoon",
-    (20, 2): "Skip feeding Raccoon",
-    (5, 0): "Pretending to press left",
-    (6, 0): "Pretending to press right",
-    }
+# Private constants specifically for the phony GPIO package
+_RISING_CALLBACKS = {}
+_FALLING_CALLBACKS = {}
+_PIN_DICT = {}
+_REVERSE_PIN_DICT = {}
+_PIN_VALUES = {}
+_KEY_TO_INPUT_MAP = {
+    pygame.K_a: "left_pressure_pad",
+    pygame.K_s: "middle_pressure_pad",
+    pygame.K_d: "right_pressure_pad",
+}
 
 responses = []
 wait_time = 0
-
-print("Using the RPi phony package.")
-print("- Press r to simulate a Raccoon entering the system.")
-print("- Press t to simulate a Raccoon leaving the system.")
-print("- Press o to simulate a Raccoon pressing the left side of the touch screen.")
-print("- Press p to simulate a Raccoon pressing the right side of the touch screen.")
-print("")
-print("By default the feeder is ignored, but you can simulate the feeder as well, if you want to.")
-print("- Press f to start simulating the feeder, or to pretend that the feeder stopped feeding.")
-print("- Press g to pretend that the feeder started feeding.")
-print("- Press h to ignore the feeder altogether (default).")
-print("")
 
 
 class RACExitRequest(Exception):
@@ -44,87 +33,73 @@ class RACExitRequest(Exception):
 
 
 def setmode(_):
+    global _PIN_DICT
+    global _REVERSE_PIN_DICT
+    global _PIN_VALUES
     pygame.mixer.pre_init(22050, -16, 1, 1024)
     pygame.mixer.init()
     pygame.display.init()
     pygame.display.set_mode((1280, 768))
+    with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), "pin_mapping.json")) as fh:
+        _PIN_DICT = json.load(fh)
+    _REVERSE_PIN_DICT = {v: k for k, v in _PIN_DICT.items()}
+    _PIN_VALUES = {k: 0 for k in _REVERSE_PIN_DICT}
+    print("_PIN_VALUES:", _PIN_VALUES)
+    print("Using the RPi phony package.")
+    for k, v in _KEY_TO_INPUT_MAP.items():
+        print(f"Press {pygame.key.name(k)} to activate {v}")
 
 
 # noinspection PyUnusedLocal
 def setup(index, value, pull_up_down=None):
-    if index == 20:
-        # Ignore feeding signals
-        NUMBER_DICT[index] = 2
-    else:
-        NUMBER_DICT[index] = value
+    pass
 
         
-def output(index, value):
-    if index == 1 and value == 1:
-        print("Right LED is on")
-    elif index == 1 and value == 0:
-        print("Right LED is off")
-    elif index == 2 and value == 1:
-        print("Left LED is on")
-    elif index == 2 and value == 0:
-        print("Left LED is off")
+def output(pin, value):
+    global wait_time
+    print(f"{_REVERSE_PIN_DICT[pin]}={value}")
+    if pin == _PIN_DICT["left_conveyor_turn_counterclockwise"]:
+        # Now we have to simulate the conveyor turning
+        _PIN_VALUES[_PIN_DICT["left_conveyor_sensor"]] = 1
+        wait_time = 5
+        responses.append(("left_conveyor_sensor", 0))
+        pass
 
 
-def handle_callbacks(pin):
-    for i in range(len(CALLBACKS)):
-        if CALLBACK_IDS[i] == pin:
-            CALLBACKS[i](pin)
+def handle_callbacks(pin, sign):
+    if sign == FALLING:
+        if pin in _FALLING_CALLBACKS:
+            for callback in _FALLING_CALLBACKS[pin]:
+                callback(pin)
+    elif sign == RISING:
+        if pin in _RISING_CALLBACKS:
+            for callback in _RISING_CALLBACKS[pin]:
+                callback(pin)
 
             
 def process_events():
     for event in pygame.event.get():
         if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_r:
-                print("Pretending to see a Raccoon", flush=True)
-                NUMBER_DICT[18]=1
-                handle_callbacks(18)
-            elif event.key == pygame.K_e:
-                print("Pretending to see another Raccoon", flush=True)
-                NUMBER_DICT[18]=2
-                handle_callbacks(18)
-            elif event.key == pygame.K_w:
-                print("Pretending to have a delay", flush=True)
-                NUMBER_DICT[18]=3
-                handle_callbacks(18)
-            elif event.key == pygame.K_t:
-                print("Pretending Raccoon left", flush=True)
-                NUMBER_DICT[18]=0
-                handle_callbacks(18)
-            elif event.key == pygame.K_f:
-                print("Pretending to feed Raccoon", flush=True)
-                NUMBER_DICT[20]=1
-                handle_callbacks(20)
-            elif event.key == pygame.K_g:
-                print("Pretending to be done feeding Raccoon", flush=True)
-                NUMBER_DICT[20]=0
-                handle_callbacks(20)
-            elif event.key == pygame.K_h:
-                print("Skip feeding Raccoon", flush=True)
-                NUMBER_DICT[20]=2
-                handle_callbacks(20)
-            elif event.key == pygame.K_o:
-                print("Pretending to press left", flush=True)
-                NUMBER_DICT[5]=0
-                handle_callbacks(5)
-            elif event.key == pygame.K_p:
-                print("Pretending to press right", flush=True)
-                NUMBER_DICT[6]=0
-                handle_callbacks(6)
+            if event.key in _KEY_TO_INPUT_MAP:
+                activate_input = _KEY_TO_INPUT_MAP[event.key]
+                print(f"Activating {activate_input}", flush=True)
+                _PIN_VALUES[_PIN_DICT[activate_input]] = 1
+                handle_callbacks(_PIN_DICT[activate_input], RISING)
             elif event.key == pygame.K_ESCAPE:
                 raise RACExitRequest()
-    
-        
-def input(index):
-    #print("Entering input function")
+        elif event.type == pygame.KEYUP:
+            if event.key in _KEY_TO_INPUT_MAP:
+                activate_input = _KEY_TO_INPUT_MAP[event.key]
+                print(f"Deactivating {activate_input}", flush=True)
+                _PIN_VALUES[_PIN_DICT[activate_input]] = 0
+                handle_callbacks(_PIN_DICT[activate_input], FALLING)
+
+
+def _process_scheduled_events():
     global wait_time
-    pin_callbacks=[]
+    pin_callbacks = []
     if wait_time > 0:
-        wait_time-=1
+        wait_time -= 1
     else:
         while len(responses) > 0:
             response = responses.pop(0)
@@ -132,29 +107,36 @@ def input(index):
             if isinstance(response, int):
                 if response == -1:
                     raise RACExitRequest()
-                wait_time=response
+                wait_time = response
                 break
             elif hasattr(response, "__call__"):
-                response()  
+                response()
             else:
-                if response in RESPONSE_DICT:
-                    print("GPIO:", RESPONSE_DICT[response], flush=True)
+                pin_name, value = response
+                if value > _PIN_VALUES[_PIN_DICT[pin_name]]:
+                    sign = RISING
+                elif value < _PIN_VALUES[_PIN_DICT[pin_name]]:
+                    sign = FALLING
                 else:
-                    print("GPIO: Setting unknown response:", response, flush=True)
-                pin, value = response
-                NUMBER_DICT[pin]=value
-                if pin in CALLBACK_IDS:
-                    pin_callbacks.append(pin)
-                        
-    for pin in pin_callbacks:
-        for callback in CALLBACKS:
-            callback(pin)
-                
+                    # If the sign is neither rising nor falling, nothing as changed
+                    continue
+
+                _PIN_VALUES[_PIN_DICT[pin_name]] = value
+                pin_callbacks.append((_PIN_DICT[pin_name], sign))
+
+    for pin, sign in pin_callbacks:
+        handle_callbacks(pin, sign)
+
+
+# noinspection PyShadowingBuiltins
+def input(pin):
+    # print("Entering input function")
+    _process_scheduled_events()
     process_events()            
 
     #print("Leaving input function")
-    if index in NUMBER_DICT:
-        return NUMBER_DICT[index]
+    if pin in _PIN_VALUES:
+        return _PIN_VALUES[pin]
     else:
         return 0
 
@@ -167,9 +149,15 @@ def cleanup():
     pass
 
 
-def add_event_detect(index, a, callback=None, bouncetime=None):
-    CALLBACKS.append(callback)
-    CALLBACK_IDS.append(index)
+def add_event_detect(pin, sign, callback=None, bouncetime=None):
+    if sign == FALLING:
+        if pin not in _FALLING_CALLBACKS:
+            _FALLING_CALLBACKS[pin] = []
+        _FALLING_CALLBACKS[pin].append(callback)
+    elif sign == RISING:
+        if pin not in _RISING_CALLBACKS:
+            _RISING_CALLBACKS[pin] = []
+        _RISING_CALLBACKS[pin].append(callback)
 
 
 class PWM:

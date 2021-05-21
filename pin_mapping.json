@@ -1,0 +1,14 @@
+{
+    "left_pressure_pad": 1,
+    "middle_pressure_pad": 2,
+    "right_pressure_pad": 3,
+    "left_conveyor_sensor": 4,
+    "left_conveyor_turn_clockwise": 5,
+    "left_conveyor_turn_counterclockwise": 6,
+    "middle_conveyor_sensor": 7,
+    "middle_conveyor_turn_clockwise": 8,
+    "middle_conveyor_turn_counterclockwise": 9,
+    "right_conveyor_sensor": 10,
+    "right_conveyor_turn_clockwise": 11,
+    "right_conveyor_turn_counterclockwise": 12
+}
