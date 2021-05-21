@@ -2,8 +2,7 @@
 try:
     import RPi.GPIO as GPIO  # Input output pin controls
 except ModuleNotFoundError:
-    # import phony_gpio as GPIO
-    pass
+    import Phony_RPi.GPIO as GPIO
 import time  # For delays
 import datetime  # For processing time stamps
 import traceback  # For logging when the program crashes
@@ -124,26 +123,25 @@ class Parameters:
         try:
             with open(CONFIG_FILE, 'r') as pFile:
                 raw_lines = pFile.readlines()  # read lines
+                # Remove comments and empty lines from lines
+                for i, line in enumerate(raw_lines):
+                    line = line.strip()
+                    if len(line) == 0 or line[0] == "#":
+                        continue
+                    split_line = [x.strip() for x in line.split("=")]
+
+                    assert len(split_line) == 2, f"Error reading configuration file on line {i}:\"{line}\". " \
+                                                 f"Parameter lines need to be of the form \"parameter_name = parameter_value\""
+                    key, value = split_line
+                    assert key in self.parameter_dict, f"Error reading configuration file on line {i}:\"{line}\". " \
+                                                       f"Parameter {key} is not a known parameter."
+                    self.parameter_dict[key].set_from_string(value)
         except FileNotFoundError:
             print("ERROR: Configuration file", CONFIG_FILE, "not found.")
             print("Creating new configuration file.")
             print("Please check the configuration and restart.")
             self.write_current_params()
             exit()
-
-        # Remove comments and empty lines from lines
-        for i, line in enumerate(raw_lines):
-            line = line.strip()
-            if len(line) == 0 or line[0] == "#":
-                continue
-            split_line = [x.strip() for x in line.split("=")]
-
-            assert len(split_line) == 2, f"Error reading configuration file on line {i}:\"{line}\". " \
-                                         f"Parameter lines need to be of the form \"parameter_name = parameter_value\""
-            key, value = split_line
-            assert key in self.parameter_dict, f"Error reading configuration file on line {i}:\"{line}\". " \
-                                               f"Parameter {key} is not a known parameter."
-            self.parameter_dict[key].set_from_string(value)
 
 
 class PressurePads:
