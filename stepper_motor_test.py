@@ -42,6 +42,6 @@ for i in range(100):
     kit2.stepper1.onestep()
     kit2.stepper2.onestep()
 
-time.sleep(1.0)
+time.sleep(10.0)
 
 i2c.deinit()
