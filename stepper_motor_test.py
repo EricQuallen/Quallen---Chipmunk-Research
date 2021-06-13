@@ -24,12 +24,14 @@ import busio
 # print("SCL:", board.SCL)
 # print("SDA:", board.SDA)
 #
-# i2c = busio.I2C(board.SCL, board.SDA)
-# print(i2c.scan())
-# i2c.deinit()
+i2c = busio.I2C(board.SCL, board.SDA)
+print(i2c.scan())
+
 #
 #
 kit = MotorKit()
 
 for i in range(100):
     kit.stepper1.onestep()
+
+i2c.deinit()
