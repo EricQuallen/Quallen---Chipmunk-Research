@@ -5,14 +5,17 @@ import busio
 
 if detector.board.any_embedded_linux:
     from adafruit_blinka.microcontroller.generic_linux.i2c import I2C as _I2C
+    print("Embedded linux")
 elif detector.board.ftdi_ft2232h:
     from adafruit_blinka.microcontroller.ftdi_mpsse.mpsse.i2c import I2C as _I2C
+    print("ftdi_mpsse")
 else:
     from adafruit_blinka.microcontroller.generic_micropython.i2c import (
         I2C as _I2C,
     )
+    print("Generic microcontroller")
 
-_i2c = _I2C(1, mode=_I2C.MASTER, baudrate=100000)
+_i2c = _I2C(0, mode=_I2C.MASTER, baudrate=100000)
 
 
 print(_i2c)
