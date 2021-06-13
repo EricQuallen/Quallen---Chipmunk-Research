@@ -17,10 +17,14 @@ kit = MotorKit(address=96)
 kit2 = MotorKit(address=97)
 
 while True:
-    if chan0.value > 100:
+    val0, val1 = chan0.value, chan1.value
+    if val0 > 100:
         for i in range(1000):
             kit.stepper1.onestep()
-    elif chan1.value > 100:
+    elif val1 > 100:
+        for i in range(1000):
+            kit.stepper2.onestep()
+    elif val0 > 100 and val1 > 100:
         for i in range(1000):
             kit2.stepper1.onestep()
     time.sleep(0.05)
