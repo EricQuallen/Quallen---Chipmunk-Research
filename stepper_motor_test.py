@@ -15,7 +15,9 @@ else:
     )
     print("Generic microcontroller")
 
-_i2c = _I2C(0, mode=_I2C.MASTER, baudrate=100000)
+print("Chip id:", detector.chip.id)
+
+_i2c = _I2C(10, mode=_I2C.MASTER, baudrate=100000)
 
 
 print(_i2c)
