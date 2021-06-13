@@ -2,6 +2,7 @@ from adafruit_motorkit import MotorKit
 from adafruit_blinka.agnostic import board_id, detector
 import board
 import busio
+import time
 
 # if detector.board.any_embedded_linux:
 #     from adafruit_blinka.microcontroller.generic_linux.i2c import I2C as _I2C
@@ -40,5 +41,7 @@ kit2 = MotorKit(address=97)
 for i in range(100):
     kit2.stepper1.onestep()
     kit2.stepper2.onestep()
+
+time.sleep(1.0)
 
 i2c.deinit()
