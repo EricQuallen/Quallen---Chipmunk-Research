@@ -39,10 +39,10 @@ for i in range(152):
 for i in range(200):
     kit1.stepper2.onestep()
 
-kit2 = MotorKit(address=97)
+#kit2 = MotorKit(address=97)
 
-for i in range(500):
-    kit2.stepper1.onestep()
+#for i in range(500):
+ #   kit2.stepper1.onestep()
     # kit2.stepper2.onestep()
 
 
