@@ -36,7 +36,7 @@ for i in range(152):
     kit1.stepper1.onestep()
     # kit1.stepper2.onestep()
 
-for i in range(200):
+for i in range(160):
     kit1.stepper2.onestep()
 
 #kit2 = MotorKit(address=97)
