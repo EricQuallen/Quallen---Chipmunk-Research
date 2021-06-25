@@ -41,20 +41,22 @@ cs = digitalio.DigitalInOut(board.D22)
 mcp = MCP.MCP3008(spi, cs)
 
 # create an analog input channel on all pins that could possible be defined
-chan0 = AnalogIn(mcp, MCP.P0)
+# chan0 = AnalogIn(mcp, MCP.P0)
 chan1 = AnalogIn(mcp, MCP.P1)
-# chan2 = AnalogIn(mcp, MCP.P2)
-# chan3 = AnalogIn(mcp, MCP.P3)
+chan2 = AnalogIn(mcp, MCP.P2)
+chan3 = AnalogIn(mcp, MCP.P3)
 # chan4 = AnalogIn(mcp, MCP.P4)
 # chan5 = AnalogIn(mcp, MCP.P5)
 # chan6 = AnalogIn(mcp, MCP.P6)
 # chan7 = AnalogIn(mcp, MCP.P7)
 
-print('Raw ADC Value channel 0: ', chan0.value)
-print('ADC Voltage channel 0: ' + str(chan0.voltage) + 'V')
 print('Raw ADC Value channel 1: ', chan1.value)
 print('ADC Voltage channel 1: ' + str(chan1.voltage) + 'V')
+print('Raw ADC Value channel 2: ', chan2.value)
+print('ADC Voltage channel 2: ' + str(chan2.voltage) + 'V')
+print('Raw ADC Value channel 3: ', chan3.value)
+print('ADC Voltage channel 3: ' + str(chan3.voltage) + 'V')
 
 while True:
-    print("Channel 0:", chan0.value, "Channel 1:", chan1.value)
+    print("Channel 1:", chan1.value, "Channel 2:", chan2.value, "Channel 3:", chan3.value)
     time.sleep(0.5)
