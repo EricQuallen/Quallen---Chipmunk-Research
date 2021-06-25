@@ -32,16 +32,16 @@ print(i2c.scan())
 #
 kit1 = MotorKit(address=96)
 
-for i in range(150):
+for i in range(145):
     kit1.stepper1.onestep()
     # kit1.stepper2.onestep()
 
-for i in range(150):
+for i in range(135):
     kit1.stepper2.onestep()
 
 kit2 = MotorKit(address=97)
 
-for i in range(150):
+for i in range(140):
     kit2.stepper1.onestep()
     # kit2.stepper2.onestep()
 
