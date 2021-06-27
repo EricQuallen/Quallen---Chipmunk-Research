@@ -190,15 +190,19 @@ class PressurePads:
         self.middle_pressure_pad_channel = AnalogIn(mcp, self.middle_pressure_pad_pin)
         self.left_pressure_pad_channel = AnalogIn(mcp, self.left_pressure_pad_pin)
 
-        self.threshold = 800
+        self.threshold = 200
 
     def push_init(self):
         self.prev_push = self.push
 
     def push_poll(self):
+        right_value = self.right_pressure_pad_channel.value
+        middle_value = self.middle_pressure_pad_channel.value
+        left_value = self.left_pressure_pad_channel.value
         right_pressure_pad_pressed = self.right_pressure_pad_channel.value > self.threshold
         middle_pressure_pad_pressed = self.middle_pressure_pad_channel.value > self.threshold
         left_pressure_pad_pressed = self.left_pressure_pad_channel.value > self.threshold
+        print(f"registered values; left: {left_value}, middle {middle_value}, right {right_value}")
         if right_pressure_pad_pressed:
             self.push = "R"
         elif middle_pressure_pad_pressed:
