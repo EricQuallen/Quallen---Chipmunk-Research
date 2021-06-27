@@ -3,7 +3,7 @@ import datetime  # For processing time stamps
 import traceback  # For logging when the program crashes
 import os  # For file reading
 import json  # For reading the pin mapping
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 try:
     import RPi.GPIO as GPIO  # Input output pin controls
@@ -11,7 +11,7 @@ except ImportError:
     import Phony_RPi.GPIO as GPIO  # Input output pin controls
 
 TEST_MODE = False
-__version__ = "v0 08-05-2021"
+__version__ = "v1.0 06-27-2021"
 __author__ = "J. Huizinga"
 
 # Constants
@@ -75,6 +75,9 @@ def log_error():
 
 def cleanup():
     print("Cleanup")
+    if LEDS is not None:
+        LEDS.turn_all_off()
+    GPIO.cleanup()
 
 
 # Classes
@@ -199,7 +202,10 @@ class PressurePads:
         # 64 -> 20g
         # 128 -> 50g
         # 192-256 -> 70g
-        self.threshold = 200
+        self.left_threshold = 300
+        self.middle_threshold = 200
+        self.right_threshold = 100
+        # self.threshold = 200
 
     def push_init(self):
         self.prev_push = self.push
@@ -208,10 +214,10 @@ class PressurePads:
         right_value = self.right_pressure_pad_channel.value
         middle_value = self.middle_pressure_pad_channel.value
         left_value = self.left_pressure_pad_channel.value
-        right_pressure_pad_pressed = self.right_pressure_pad_channel.value > self.threshold
-        middle_pressure_pad_pressed = self.middle_pressure_pad_channel.value > self.threshold
-        left_pressure_pad_pressed = self.left_pressure_pad_channel.value > self.threshold
-        print(f"registered values; left: {left_value}, middle {middle_value}, right {right_value}")
+        right_pressure_pad_pressed = right_value > self.left_threshold
+        middle_pressure_pad_pressed = middle_value > self.middle_threshold
+        left_pressure_pad_pressed = left_value > self.right_threshold
+        # print(f"registered values; left: {left_value}, middle {middle_value}, right {right_value}")
         if right_pressure_pad_pressed:
             self.push = "R"
         elif middle_pressure_pad_pressed:
@@ -241,76 +247,54 @@ class Conveyor:
 
     def feed(self):
         print(f"Feeding from {self.name} conveyor")
-        for i in range(1000):
+        for i in range(self.steps_to_feed):
             self.stepper.onestep()
 
 
 # JH: Class for keeping track of the LED status
-class LEDS:
+class Leds:
     def __init__(self, left_led_pin, middle_led_pin, right_led_pin):
-        self.left = False
-        self.middle = False
-        self.right = False
         self.left_led_pin = left_led_pin
         self.middle_led_pin = middle_led_pin
         self.right_led_pin = right_led_pin
+        self.id_to_pin = {
+            "L": self.left_led_pin,
+            "M": self.middle_led_pin,
+            "R": self.right_led_pin,
+        }
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(left_led_pin, GPIO.OUT)
+        GPIO.setup(middle_led_pin, GPIO.OUT)
+        GPIO.setup(right_led_pin, GPIO.OUT)
 
-    def turn_left_on(self):
-        self.left = True
-        GPIO.output(self.left_led_pin, 1)
+    def turn_on(self, led_id):
+        GPIO.output(self.id_to_pin[led_id], 1)
 
-    def turn_middle_on(self):
-        self.left = True
-        GPIO.output(self.middle_led_pin, 1)
-
-    def turn_right_on(self):
-        self.right = True
-        GPIO.output(self.right_led_pin, 1)
-
-    def turn_left_off(self):
-        self.left = False
-        GPIO.output(self.left_led_pin, 0)
-
-    def turn_middle_off(self):
-        self.left = False
-        GPIO.output(self.middle_led_pin, 0)
-
-    def turn_right_off(self):
-        self.right = False
-        GPIO.output(self.right_led_pin, 0)
+    def turn_off(self, led_id):
+        GPIO.output(self.id_to_pin[led_id], 0)
 
     def turn_all_on(self):
-        self.turn_left_on()
-        self.turn_middle_on()
-        self.turn_right_on()
+        for pin in self.id_to_pin:
+            self.turn_on(pin)
 
     def turn_all_off(self):
-        self.turn_left_off()
-        self.turn_middle_off()
-        self.turn_right_off()
+        for pin in self.id_to_pin:
+            self.turn_off(pin)
 
-    def __str__(self):
-        result = "Left: "
-        if self.left:
-            result += "On"
-        else:
-            result += "Off"
-        result += " Right: "
-        if self.right:
-            result += "On"
-        else:
-            result += "Off"
-        return result
+
+LEDS: Optional[Leds] = None
 
 
 class Experiment:
     def __init__(self,
                  parameters: Parameters,
                  pressure_pads: PressurePads,
-                 conveyors: Dict[str, Conveyor]):
+                 conveyors: Dict[str, Conveyor],
+                 leds: Leds):
         self.par: Parameters = parameters
         self.pads: PressurePads = pressure_pads
         self.conveyors: Dict[str, Conveyor] = conveyors
+        self.leds = leds
 
         # Test parameters
         self.curr_test: int = 0
@@ -356,7 +340,9 @@ class Experiment:
 
     def test_success(self):
         print("Test was successful")
+        self.leds.turn_on(self.pads.push)
         self.conveyors[self.pads.push].feed()
+        self.leds.turn_off(self.pads.push)
         self.rew_cnt += 1
         self.answer_index = 0
         self.curr_test += 1
@@ -375,6 +361,7 @@ class Experiment:
 
 
 def main():
+    global LEDS
     with open(os.path.join(os.path.dirname(__file__), "pin_mapping.json")) as fh:
         pin_settings = json.load(fh)
     print("pin_settings:", pin_settings)
@@ -408,7 +395,11 @@ def main():
     pressure_pads = PressurePads(pin_settings["left_pressure_pad"],
                                  pin_settings["middle_pressure_pad"],
                                  pin_settings["right_pressure_pad"])
-    experiment = Experiment(parameters, pressure_pads, conveyors)
+    leds = Leds(pin_settings["left_led"],
+                pin_settings["middle_led"],
+                pin_settings["right_led"])
+    LEDS = leds
+    experiment = Experiment(parameters, pressure_pads, conveyors, leds)
 
     while experiment.running:
         experiment.testing_phase()
