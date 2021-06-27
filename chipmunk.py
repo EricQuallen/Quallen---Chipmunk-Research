@@ -213,8 +213,11 @@ class PressurePads:
 
     def push_poll(self):
         right_value = self.right_pressure_pad_channel.value
+        time.sleep(0.01)
         middle_value = self.middle_pressure_pad_channel.value
+        time.sleep(0.01)
         left_value = self.left_pressure_pad_channel.value
+        time.sleep(0.01)
         right_pressure_pad_pressed = right_value > self.right_threshold
         middle_pressure_pad_pressed = middle_value > self.middle_threshold
         left_pressure_pad_pressed = left_value > self.left_threshold
@@ -227,7 +230,7 @@ class PressurePads:
             self.push = "L"
         else:
             self.push = None
-        time.sleep(0.01)
+        # time.sleep(0.01)
         return self.push is None
 
     def push_wait(self):  # Monitor buttons and presence/absence
