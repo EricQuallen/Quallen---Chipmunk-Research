@@ -19,11 +19,11 @@ left_pressure_pad = AnalogIn(mcp, pin_settings["left_pressure_pad"])
 middle_pressure_pad = AnalogIn(mcp, pin_settings["middle_pressure_pad"])
 right_pressure_pad = AnalogIn(mcp, pin_settings["right_pressure_pad"])
 
-with open(os.path.join(os.path.dirname(__file__), "values.dat"), 'w') as fh:
+with open(os.path.join(os.path.dirname(__file__), "values.csv"), 'w') as fh:
     for i in range(1000):
         right_value = right_pressure_pad.value
         middle_value = middle_pressure_pad.value
         left_value = left_pressure_pad.value
         fh.write(f"{left_value}, {middle_value}, {right_value}\n")
-        print(f"registered values; left: {left_value}, middle {middle_value}, right {right_value}")
-        time.sleep(0.1)
+        print(f"{i} registered values; left: {left_value}, middle {middle_value}, right {right_value}")
+        time.sleep(0.01)
