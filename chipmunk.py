@@ -5,6 +5,11 @@ import os  # For file reading
 import json  # For reading the pin mapping
 from typing import List, Dict
 
+try:
+    import RPi.GPIO as GPIO  # Input output pin controls
+except ImportError:
+    import Phony_RPi.GPIO as GPIO  # Input output pin controls
+
 TEST_MODE = False
 __version__ = "v0 08-05-2021"
 __author__ = "J. Huizinga"
@@ -190,6 +195,10 @@ class PressurePads:
         self.middle_pressure_pad_channel = AnalogIn(mcp, self.middle_pressure_pad_pin)
         self.left_pressure_pad_channel = AnalogIn(mcp, self.left_pressure_pad_pin)
 
+        # Rough threshold to weight map:
+        # 64 -> 20g
+        # 128 -> 50g
+        # 192-256 -> 70g
         self.threshold = 200
 
     def push_init(self):
@@ -234,6 +243,64 @@ class Conveyor:
         print(f"Feeding from {self.name} conveyor")
         for i in range(1000):
             self.stepper.onestep()
+
+
+# JH: Class for keeping track of the LED status
+class LEDS:
+    def __init__(self, left_led_pin, middle_led_pin, right_led_pin):
+        self.left = False
+        self.middle = False
+        self.right = False
+        self.left_led_pin = left_led_pin
+        self.middle_led_pin = middle_led_pin
+        self.right_led_pin = right_led_pin
+
+    def turn_left_on(self):
+        self.left = True
+        GPIO.output(self.left_led_pin, 1)
+
+    def turn_middle_on(self):
+        self.left = True
+        GPIO.output(self.middle_led_pin, 1)
+
+    def turn_right_on(self):
+        self.right = True
+        GPIO.output(self.right_led_pin, 1)
+
+    def turn_left_off(self):
+        self.left = False
+        GPIO.output(self.left_led_pin, 0)
+
+    def turn_middle_off(self):
+        self.left = False
+        GPIO.output(self.middle_led_pin, 0)
+
+    def turn_right_off(self):
+        self.right = False
+        GPIO.output(self.right_led_pin, 0)
+
+    def turn_all_on(self):
+        self.turn_left_on()
+        self.turn_middle_on()
+        self.turn_right_on()
+
+    def turn_all_off(self):
+        self.turn_left_off()
+        self.turn_middle_off()
+        self.turn_right_off()
+
+    def __str__(self):
+        result = "Left: "
+        if self.left:
+            result += "On"
+        else:
+            result += "Off"
+        result += " Right: "
+        if self.right:
+            result += "On"
+        else:
+            result += "Off"
+        return result
 
 
 class Experiment:
