@@ -217,7 +217,7 @@ class PressurePads:
         right_pressure_pad_pressed = right_value > self.right_threshold
         middle_pressure_pad_pressed = middle_value > self.middle_threshold
         left_pressure_pad_pressed = left_value > self.left_threshold
-        # print(f"registered values; left: {left_value}, middle {middle_value}, right {right_value}")
+        print(f"registered values; left: {left_value}, middle {middle_value}, right {right_value}")
         if right_pressure_pad_pressed:
             self.push = "R"
         elif middle_pressure_pad_pressed:
