@@ -4,6 +4,7 @@ import traceback  # For logging when the program crashes
 import os  # For file reading
 import json  # For reading the pin mapping
 from typing import List, Dict, Optional
+import time
 
 try:
     import RPi.GPIO as GPIO  # Input output pin controls
@@ -226,6 +227,7 @@ class PressurePads:
             self.push = "L"
         else:
             self.push = None
+        time.sleep(0.01)
         return self.push is None
 
     def push_wait(self):  # Monitor buttons and presence/absence
