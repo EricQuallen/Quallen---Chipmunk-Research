@@ -190,7 +190,7 @@ class PressurePads:
         self.middle_pressure_pad_channel = AnalogIn(mcp, self.middle_pressure_pad_pin)
         self.left_pressure_pad_channel = AnalogIn(mcp, self.left_pressure_pad_pin)
 
-        self.threshold = 100
+        self.threshold = 800
 
     def push_init(self):
         self.prev_push = self.push
