@@ -19,9 +19,11 @@ left_pressure_pad = AnalogIn(mcp, pin_settings["left_pressure_pad"])
 middle_pressure_pad = AnalogIn(mcp, pin_settings["middle_pressure_pad"])
 right_pressure_pad = AnalogIn(mcp, pin_settings["right_pressure_pad"])
 
-while True:
-    right_value = right_pressure_pad.value
-    middle_value = middle_pressure_pad.value
-    left_value = left_pressure_pad.value
-    print(f"registered values; left: {left_value}, middle {middle_value}, right {right_value}")
-    time.sleep(0.1)
+with open(os.path.join(os.path.dirname(__file__), "values.dat"), 'w') as fh:
+    for i in range(1000):
+        right_value = right_pressure_pad.value
+        middle_value = middle_pressure_pad.value
+        left_value = left_pressure_pad.value
+        fh.write(f"{left_value}, {middle_value}, {right_value}\n")
+        print(f"registered values; left: {left_value}, middle {middle_value}, right {right_value}")
+        time.sleep(0.1)
