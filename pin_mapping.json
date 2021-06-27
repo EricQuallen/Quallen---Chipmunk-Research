@@ -10,7 +10,7 @@
     "left_conveyor_stepper": "stepper1",
     "middle_conveyor_stepper": "stepper2",
     "right_conveyor_stepper": "stepper1",
-    "left_led": 23,
-    "middle_led": 24,
+    "left_led": 24,
+    "middle_led": 23,
     "right_led": 25
 }
