@@ -248,7 +248,8 @@ class Conveyor:
     def feed(self):
         print(f"Feeding from {self.name} conveyor")
         for i in range(self.steps_to_feed):
-            self.stepper.onestep()
+            pass
+            # self.stepper.onestep()
 
 
 # JH: Class for keeping track of the LED status
