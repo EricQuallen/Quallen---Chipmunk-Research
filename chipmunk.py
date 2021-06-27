@@ -5,7 +5,7 @@ import os  # For file reading
 import json  # For reading the pin mapping
 from typing import List, Dict
 
-TEST_MODE = True
+TEST_MODE = False
 __version__ = "v0 08-05-2021"
 __author__ = "J. Huizinga"
 
