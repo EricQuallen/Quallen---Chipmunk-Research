@@ -202,7 +202,7 @@ class PressurePads:
         # 64 -> 20g
         # 128 -> 50g
         # 192-256 -> 70g
-        self.left_threshold = 300
+        self.left_threshold = 250
         self.middle_threshold = 200
         self.right_threshold = 150
         # self.threshold = 200
