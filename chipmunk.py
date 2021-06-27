@@ -1,18 +1,11 @@
 # Import necessary libraries
-try:
-    # noinspection PyUnresolvedReferences,PyPackageRequirements
-    import RPi.GPIO as GPIO  # Input output pin controls
-    TEST_MODE = False
-except ModuleNotFoundError:
-    import Phony_RPi.GPIO as GPIO
-    TEST_MODE = True
-import time  # For delays
 import datetime  # For processing time stamps
 import traceback  # For logging when the program crashes
 import os  # For file reading
 import json  # For reading the pin mapping
 from typing import List, Dict
 
+TEST_MODE = True
 __version__ = "v0 08-05-2021"
 __author__ = "J. Huizinga"
 
@@ -43,10 +36,27 @@ def parse_list_of_lists_of_strings(string: str):
     return [parse_list_of_strings(lst) for lst in string.split(";")]
 
 
+def write_list_of_list_of_strings(list_of_list):
+    result = ""
+    for i, list_of_strings in enumerate(list_of_list):
+        for j, string in enumerate(list_of_strings):
+            result += string
+            if j < len(list_of_strings) - 1:
+                result += ","
+        if i < len(list_of_list) - 1:
+            result += ";"
+    return result
+
+
 PARSE_DICT = {
     bool: custom_bool_cast,
     List[str]: parse_list_of_strings,
     List[List[str]]: parse_list_of_lists_of_strings,
+}
+
+
+WRITE_DICT = {
+    List[List[str]]: write_list_of_list_of_strings
 }
 
 
@@ -60,11 +70,6 @@ def log_error():
 
 def cleanup():
     print("Cleanup")
-    # TODO: Cleanup will probably have to be very different
-    # GPIO.remove_event_detect(PRESSURE_PAD_LEFT)
-    # GPIO.remove_event_detect(PRESSURE_PAD_MIDDLE)
-    # GPIO.remove_event_detect(PRESSURE_PAD_RIGHT)
-    GPIO.cleanup()
 
 
 # Classes
@@ -78,10 +83,15 @@ class Parameter:
 
     def set_from_string(self, value_as_string):
         if self.par_type in PARSE_DICT:
-            parse_function = PARSE_DICT[self.par_type]
+            self.v = PARSE_DICT[self.par_type](value_as_string)
         else:
-            parse_function = self.par_type
-        self.v = parse_function(value_as_string)
+            self.v = self.par_type(value_as_string)
+
+    def value_as_string(self):
+        if self.par_type in WRITE_DICT:
+            return WRITE_DICT[self.par_type](self.v)
+        else:
+            return str(self.v)
 
 
 class Parameters:
@@ -89,7 +99,7 @@ class Parameters:
         self.parameters: List[Parameter] = []
         self.parameter_dict: Dict[str, Parameter] = {}
 
-        self.tests = Parameter("A; A; A; A; L; M; R; M,L; M,R",
+        self.tests = Parameter(["A", "A", "A", "A", "L", "M", "R", ["M", "L"], ["M", "R"]],
                                "Tests to be given.",
                                List[List[str]])
         self._register_parameters()
@@ -112,7 +122,7 @@ class Parameters:
                         pFile.write("\n")
                 pFile.write(par.name)
                 pFile.write("=")
-                pFile.write(par.v)
+                pFile.write(par.value_as_string())
                 pFile.write("\n")
 
     def write_param(self):
@@ -131,7 +141,8 @@ class Parameters:
                     split_line = [x.strip() for x in line.split("=")]
 
                     assert len(split_line) == 2, f"Error reading configuration file on line {i}:\"{line}\". " \
-                                                 f"Parameter lines need to be of the form \"parameter_name = parameter_value\""
+                                                 f"Parameter lines need to be of the form " \
+                                                 f"\"parameter_name = parameter_value\""
                     key, value = split_line
                     assert key in self.parameter_dict, f"Error reading configuration file on line {i}:\"{line}\". " \
                                                        f"Parameter {key} is not a known parameter."
@@ -153,82 +164,72 @@ class PressurePads:
         self.middle_pressure_pad_pin = middle_pressure_pad_pin
         self.left_pressure_pad_pin = left_pressure_pad_pin
 
-        # TODO: This is where the pressure pad setup will happen
-        GPIO.setup(right_pressure_pad_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        GPIO.setup(middle_pressure_pad_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        GPIO.setup(left_pressure_pad_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        GPIO.add_event_detect(right_pressure_pad_pin, GPIO.FALLING, callback=self.pushed, bouncetime=500)
-        GPIO.add_event_detect(middle_pressure_pad_pin, GPIO.FALLING, callback=self.pushed, bouncetime=500)
-        GPIO.add_event_detect(left_pressure_pad_pin, GPIO.FALLING, callback=self.pushed, bouncetime=500)
+        # create the spi bus
+        if TEST_MODE:
+            from test_utilities import FakeAnalogIn as AnalogIn
+            mcp = None
+        else:
+            try:
+                import busio
+                import digitalio
+                import board
+                import adafruit_mcp3xxx.mcp3008 as MCP
+                from adafruit_mcp3xxx.analog_in import AnalogIn
+                spi = busio.SPI(clock=board.SCK, MISO=board.MISO, MOSI=board.MOSI)
+                cs = digitalio.DigitalInOut(board.D22)
+                mcp = MCP.MCP3008(spi, cs)
+            except ImportError:
+                from test_utilities import FakeAnalogIn as AnalogIn
+                busio = None
+                digitalio = None
+                board = None
+                MCP = None
+                mcp = None
+
+        self.right_pressure_pad_channel = AnalogIn(mcp, self.right_pressure_pad_pin)
+        self.middle_pressure_pad_channel = AnalogIn(mcp, self.middle_pressure_pad_pin)
+        self.left_pressure_pad_channel = AnalogIn(mcp, self.left_pressure_pad_pin)
+
+        self.threshold = 100
 
     def push_init(self):
         self.prev_push = self.push
-        self.push = 0
-        self.listen = 1  # respond to button push interrupts
 
     def push_poll(self):
-        if self.push != 0:
-            self.listen = 0  # stop listening to interrupts
-            return False
-        if TEST_MODE:
-            GPIO.process_events()
-        time.sleep(0.02)
-        return True
+        right_pressure_pad_pressed = self.right_pressure_pad_channel.value > self.threshold
+        middle_pressure_pad_pressed = self.middle_pressure_pad_channel.value > self.threshold
+        left_pressure_pad_pressed = self.left_pressure_pad_channel.value > self.threshold
+        if right_pressure_pad_pressed:
+            self.push = "R"
+        elif middle_pressure_pad_pressed:
+            self.push = "M"
+        elif left_pressure_pad_pressed:
+            self.push = "L"
+        else:
+            self.push = None
+        return self.push is None
 
     def push_wait(self):  # Monitor buttons and presence/absence
         self.push_init()
+        # First wait until no pressure pads are pressed
+        while not self.push_poll():
+            pass
+        # Then wait until one of pressure pads are pressed
         while self.push_poll():
-            pass  # this will monitor IR senor and the buttons
+            pass
         print("push = ", self.push)
-
-    def pushed(self, channel):  # interrupt detection function
-        self.prev_push = self.push
-        if self.listen == 1:  # Only do the following if we are listening...
-            print("trigger detected...", flush=True)
-            if channel == self.left_pressure_pad_pin:
-                time.sleep(0.01)
-                if GPIO.input(self.left_pressure_pad_pin) == 0:
-                    self.push = "L"
-                    self.listen = 0  # turn off listening for interrupts
-            if channel == self.middle_pressure_pad_pin:
-                time.sleep(0.01)
-                if GPIO.input(self.middle_pressure_pad_pin) == 0:
-                    self.push = "M"
-                    self.listen = 0  # turn off listening for interrupts
-            if channel == self.right_pressure_pad_pin:
-                time.sleep(0.01)
-                if GPIO.input(self.right_pressure_pad_pin) == 0:
-                    self.push = "R"
-                    self.listen = 0  # turn off listening for interrupts
 
 
 class Conveyor:
-    def __init__(self, pin_turn_motor_right, pin_turn_motor_left, pin_snap):
-        self.pin_turn_motor_right = pin_turn_motor_right
-        self.pin_turn_motor_left = pin_turn_motor_left
-        self.pin_snap = pin_snap
-
-        # TODO: This is where conveyor setup will happen
-        # Input for motor snap switch. requires pull up enabled
-        GPIO.setup(self.pin_snap, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        # Motor control - set high to turn motor right (facing spindle)
-        GPIO.setup(self.pin_turn_motor_right, GPIO.OUT)
-        # Motor control - set high to turn motor left (facing spindle)
-        GPIO.setup(self.pin_turn_motor_left, GPIO.OUT)
-        GPIO.output(self.pin_turn_motor_right, 0)  # motor in standby
-        GPIO.output(self.pin_turn_motor_left, 0)  # motor in standby
+    def __init__(self, stepper, steps_to_feed=1000, name=""):
+        self.stepper = stepper
+        self.steps_to_feed = steps_to_feed
+        self.name = name
 
     def feed(self):
-        # Turn left
-        GPIO.output(self.pin_turn_motor_left, 1)
-        # Turn until for the "motor snap" to become active
-        while GPIO.input(self.pin_snap) == 0:
-            time.sleep(0.1)
-        # Turn until for the "motor snap" to becomes inactive again
-        while GPIO.input(self.pin_snap) == 1:
-            time.sleep(0.05)
-        # Stop turning
-        GPIO.output(self.pin_turn_motor_left, 0)
+        print(f"Feeding from {self.name} conveyor")
+        for i in range(1000):
+            self.stepper.onestep()
 
 
 class Experiment:
@@ -242,7 +243,6 @@ class Experiment:
 
         # Test parameters
         self.curr_test: int = 0
-        # self.tests: List[List[str]] = []
 
         # Trial data
         self.answer_index: int = 0
@@ -254,8 +254,8 @@ class Experiment:
         self.running: bool = True
 
     def testing_phase(self):
-        print("Testing mode...")
-        if self.curr_test > len(self.par.tests.v):
+        if self.curr_test >= len(self.par.tests.v):
+            self.running = False
             return
         answer_list = self.par.tests.v[self.curr_test]
 
@@ -293,7 +293,6 @@ class Experiment:
             self.running = False
 
     def log_result(self, animal_id, event, time1, time2, push, correct):
-        print("LOGGING...")
         # Build a data line and write it to memory
         data_list = [animal_id, event, time1, time2, self.curr_test,
                      self.answer_index, self.nb_incorrect_answers,
@@ -302,29 +301,39 @@ class Experiment:
         data_text = open(DATA_FILE, 'a')  # open for appending
         data_text.write(data_line + "\n")
         data_text.close()
-        print("LOGGING DONE")
 
 
 def main():
-    # Setup GPIO interface to feeder, IR, etc.
-    GPIO.setmode(GPIO.BCM)
-
-    # TODO: These pin numbers are completely arbitrary
     with open(os.path.join(os.path.dirname(__file__), "pin_mapping.json")) as fh:
         pin_settings = json.load(fh)
     print("pin_settings:", pin_settings)
-    conveyors = {
-        "L": Conveyor(pin_settings["left_conveyor_turn_clockwise"],
-                      pin_settings["left_conveyor_turn_counterclockwise"],
-                      pin_settings["left_conveyor_sensor"]),
-        "M": Conveyor(pin_settings["middle_conveyor_turn_clockwise"],
-                      pin_settings["middle_conveyor_turn_counterclockwise"],
-                      pin_settings["middle_conveyor_sensor"]),
-        "R": Conveyor(pin_settings["right_conveyor_turn_clockwise"],
-                      pin_settings["right_conveyor_turn_counterclockwise"],
-                      pin_settings["right_conveyor_sensor"]),
-    }
     parameters = Parameters()
+    parameters.read_from_file()
+
+    if TEST_MODE:
+        import test_utilities
+        from test_utilities import FakeMotorKit as MotorKit
+        test_utilities.init()
+    else:
+        try:
+            from adafruit_motorkit import MotorKit
+        except ImportError:
+            from test_utilities import FakeMotorKit as MotorKit
+    kit1 = MotorKit(address=pin_settings["motor_kit_1_address"])
+    kit2 = MotorKit(address=pin_settings["motor_kit_2_address"])
+    kits = [kit1, kit2]
+
+    conveyors = {
+        "L": Conveyor(getattr(kits[pin_settings["left_conveyor_kit"]],
+                              pin_settings["left_conveyor_stepper"]),
+                      name="left"),
+        "M": Conveyor(getattr(kits[pin_settings["middle_conveyor_kit"]],
+                              pin_settings["middle_conveyor_stepper"]),
+                      name="middle"),
+        "R": Conveyor(getattr(kits[pin_settings["right_conveyor_kit"]],
+                              pin_settings["right_conveyor_stepper"]),
+                      name="right"),
+    }
     pressure_pads = PressurePads(pin_settings["left_pressure_pad"],
                                  pin_settings["middle_pressure_pad"],
                                  pin_settings["right_pressure_pad"])
