@@ -11,7 +11,7 @@ try:
 except ImportError:
     import Phony_RPi.GPIO as GPIO  # Input output pin controls
 
-TEST_MODE = True
+TEST_MODE = False
 __version__ = "v1.0 06-27-2021"
 __author__ = "J. Huizinga"
 
