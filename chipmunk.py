@@ -23,6 +23,9 @@ DATA_FILE = "results.csv"
 ERROR_LOG = "error.txt"
 LEGAL_ANSWERS = ["L", "M", "R", "A"]
 
+# left mean: 0.128, var: 8.1756
+# right mean: 0.256, var: 16.31846
+
 
 # Functions
 def custom_bool_cast(string: str):

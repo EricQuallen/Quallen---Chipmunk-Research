@@ -31,8 +31,8 @@ with open(os.path.join(os.path.dirname(__file__), "values.csv"), 'w') as fh:
         middle_value = middle_pressure_pad.value
         left_value = left_pressure_pad.value
         left_values.append(left_value)
+        middle_values.append(middle_value)
         right_values.append(right_value)
-        left_values.append(left_value)
         fh.write(f"{left_value},{middle_value},{right_value}\n")
         print(f"{i} registered values; left: {left_value}, middle {middle_value}, right {right_value}")
 
