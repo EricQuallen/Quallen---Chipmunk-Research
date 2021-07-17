@@ -3,7 +3,7 @@ import datetime  # For processing time stamps
 import traceback  # For logging when the program crashes
 import os  # For file reading
 import json  # For reading the pin mapping
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any
 import time
 
 try:
@@ -11,15 +11,15 @@ try:
 except ImportError:
     import Phony_RPi.GPIO as GPIO  # Input output pin controls
 
-TEST_MODE = False
+TEST_MODE = True
 __version__ = "v1.0 06-27-2021"
 __author__ = "J. Huizinga"
 
 # Constants
 ID = "ANIMALXXXX"
 FOLDER = "./"
-CONFIG_FILE = "ConfigurationFile.txt"
-DATA_FILE = "results.txt"
+CONFIG_FILE = "configuration.json"
+DATA_FILE = "results.csv"
 ERROR_LOG = "error.txt"
 LEGAL_ANSWERS = ["L", "M", "R", "A"]
 
@@ -103,36 +103,101 @@ class Parameter:
             return str(self.v)
 
 
+# class Parameters:
+#     def __init__(self):
+#         self.parameters: List[Parameter] = []
+#         self.parameter_dict: Dict[str, Parameter] = {}
+#
+#         # Parameters
+#         self.tests = Parameter(["A", "A", "A", "A", "L", "M", "R", ["M", "L"], ["M", "R"]],
+#                                "Tests to be given.",
+#                                List[List[str]])
+#         self._register_parameters()
+#
+#     def _register_parameters(self):
+#         for name, param in self.__dict__.items():
+#             if isinstance(param, Parameter):
+#                 param.name = name
+#                 self.parameters.append(param)
+#                 self.parameter_dict[name] = param
+#
+#     def write_current_params(self):
+#         with open(CONFIG_FILE, 'w') as fh:
+#             for par in self.parameters:
+#                 if len(par.exp) > 0:
+#                     fh.write("\n")
+#                     for line in par.exp.split("\n"):
+#                         fh.write("# ")
+#                         fh.write(line)
+#                         fh.write("\n")
+#                 fh.write(par.name)
+#                 fh.write("=")
+#                 fh.write(par.value_as_string())
+#                 fh.write("\n")
+#
+#     def write_param(self):
+#         self.write_current_params()
+#
+#     def read_from_file(self):
+#         print("Reading configuration file:", CONFIG_FILE, flush=True)
+#         try:
+#             with open(CONFIG_FILE, 'r') as fh:
+#                 raw_lines = fh.readlines()  # read lines
+#                 # Remove comments and empty lines from lines
+#                 for i, line in enumerate(raw_lines):
+#                     line = line.strip()
+#                     if len(line) == 0 or line[0] == "#":
+#                         continue
+#                     split_line = [x.strip() for x in line.split("=")]
+#
+#                     assert len(split_line) == 2, f"Error reading configuration file on line {i}:\"{line}\". " \
+#                                                  f"Parameter lines need to be of the form " \
+#                                                  f"\"parameter_name = parameter_value\""
+#                     key, value = split_line
+#                     assert key in self.parameter_dict, f"Error reading configuration file on line {i}:\"{line}\". " \
+#                                                        f"Parameter {key} is not a known parameter."
+#                     self.parameter_dict[key].set_from_string(value)
+#         except FileNotFoundError:
+#             print("ERROR: Configuration file", CONFIG_FILE, "not found.")
+#             print("Creating new configuration file.")
+#             print("Please check the configuration and restart.")
+#             self.write_current_params()
+#             exit()
+
+
 class Parameters:
     def __init__(self):
-        self.parameters: List[Parameter] = []
-        self.parameter_dict: Dict[str, Parameter] = {}
+        self.parameter_dict: Dict[str, Any] = {}
 
-        self.tests = Parameter(["A", "A", "A", "A", "L", "M", "R", ["M", "L"], ["M", "R"]],
-                               "Tests to be given.",
-                               List[List[str]])
-        self._register_parameters()
+        # Parameters
+        self.tests = self._register("tests",
+                                    [{"answers": ["A"],
+                                      "repeat": 4},
+                                     {"answers": ["L"],
+                                      "repeat": 1},
+                                     {"answers": ["M"],
+                                      "repeat": 1},
+                                     {"answers": ["R"],
+                                      "repeat": 1},
+                                     {"answers": ["L", "M"],
+                                      "repeat": 1},
+                                     {"answers": ["R", "M"],
+                                      "repeat": 1},
+                                     ])
 
-    def _register_parameters(self):
-        for name, param in self.__dict__.items():
-            if isinstance(param, Parameter):
-                param.name = name
-                self.parameters.append(param)
-                self.parameter_dict[name] = param
+    def get_tests(self):
+        result = []
+        for test in self.tests:
+            result += [test["answers"]] * test["repeat"]
+        return result
+
+    def _register(self, name, default):
+        self.parameter_dict[name] = default
+        return default
 
     def write_current_params(self):
-        with open(CONFIG_FILE, 'w') as pFile:
-            for par in self.parameters:
-                if len(par.exp) > 0:
-                    pFile.write("\n")
-                    for line in par.exp.split("\n"):
-                        pFile.write("# ")
-                        pFile.write(line)
-                        pFile.write("\n")
-                pFile.write(par.name)
-                pFile.write("=")
-                pFile.write(par.value_as_string())
-                pFile.write("\n")
+        with open(CONFIG_FILE, 'w') as fh:
+            json.dump(self.parameter_dict, fh, indent=4)
 
     def write_param(self):
         self.write_current_params()
@@ -140,22 +205,11 @@ class Parameters:
     def read_from_file(self):
         print("Reading configuration file:", CONFIG_FILE, flush=True)
         try:
-            with open(CONFIG_FILE, 'r') as pFile:
-                raw_lines = pFile.readlines()  # read lines
-                # Remove comments and empty lines from lines
-                for i, line in enumerate(raw_lines):
-                    line = line.strip()
-                    if len(line) == 0 or line[0] == "#":
-                        continue
-                    split_line = [x.strip() for x in line.split("=")]
+            with open(CONFIG_FILE, 'r') as fh:
+                self.parameter_dict = json.load(fh)
+            for name, value in self.parameter_dict.items():
+                self.__setattr__(name, value)
 
-                    assert len(split_line) == 2, f"Error reading configuration file on line {i}:\"{line}\". " \
-                                                 f"Parameter lines need to be of the form " \
-                                                 f"\"parameter_name = parameter_value\""
-                    key, value = split_line
-                    assert key in self.parameter_dict, f"Error reading configuration file on line {i}:\"{line}\". " \
-                                                       f"Parameter {key} is not a known parameter."
-                    self.parameter_dict[key].set_from_string(value)
         except FileNotFoundError:
             print("ERROR: Configuration file", CONFIG_FILE, "not found.")
             print("Creating new configuration file.")
@@ -213,15 +267,15 @@ class PressurePads:
 
     def push_poll(self):
         right_value = self.right_pressure_pad_channel.value
-        time.sleep(0.01)
+        # time.sleep(0.01)
         middle_value = self.middle_pressure_pad_channel.value
-        time.sleep(0.01)
+        # time.sleep(0.01)
         left_value = self.left_pressure_pad_channel.value
-        time.sleep(0.01)
+        # time.sleep(0.01)
         right_pressure_pad_pressed = right_value > self.right_threshold
         middle_pressure_pad_pressed = middle_value > self.middle_threshold
         left_pressure_pad_pressed = left_value > self.left_threshold
-        print(f"registered values; left: {left_value}, middle {middle_value}, right {right_value}")
+        # print(f"registered values; left: {left_value}, middle {middle_value}, right {right_value}")
         if right_pressure_pad_pressed:
             self.push = "R"
         elif middle_pressure_pad_pressed:
@@ -253,8 +307,7 @@ class Conveyor:
     def feed(self):
         print(f"Feeding from {self.name} conveyor")
         for i in range(self.steps_to_feed):
-            pass
-            # self.stepper.onestep()
+            self.stepper.onestep()
 
 
 # JH: Class for keeping track of the LED status
@@ -315,10 +368,10 @@ class Experiment:
         self.running: bool = True
 
     def testing_phase(self):
-        if self.curr_test >= len(self.par.tests.v):
+        if self.curr_test >= len(self.par.get_tests()):
             self.running = False
             return
-        answer_list = self.par.tests.v[self.curr_test]
+        answer_list = self.par.get_tests()[self.curr_test]
 
         # Select answer
         answer = answer_list[self.answer_index]
@@ -352,7 +405,7 @@ class Experiment:
         self.rew_cnt += 1
         self.answer_index = 0
         self.curr_test += 1
-        if self.curr_test > len(self.par.tests.v):
+        if self.curr_test > len(self.par.get_tests()):
             self.running = False
 
     def log_result(self, animal_id, event, time1, time2, push, correct):
