@@ -28,6 +28,8 @@ WINDOW_LENGTH = 10
 
 # left mean: 0.128, var: 8.1756
 # right mean: 0.256, var: 16.31846
+# right mean: 37.568, var: 1009.38
+# left mean 128, var: 208.89
 
 
 # Functions
@@ -268,7 +270,7 @@ class PressurePads:
         # 128 -> 50g
         # 192-256 -> 70g
         self.left_threshold = 120
-        self.middle_threshold = 200
+        self.middle_threshold = 2
         self.right_threshold = 30
         # self.threshold = 200
 
@@ -285,7 +287,7 @@ class PressurePads:
         self.left_window.append(left_value)
         self.middle_window.append(middle_value)
         self.right_window.append(right_value)
-        print(f"registered values; left: {left_value}, middle {middle_value}, right {right_value}")
+        # print(f"registered values; left: {left_value}, middle {middle_value}, right {right_value}")
 
         time.sleep(0.01)
         if len(self.left_window) < WINDOW_LENGTH:
