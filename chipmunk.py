@@ -5,6 +5,8 @@ import os  # For file reading
 import json  # For reading the pin mapping
 from typing import List, Dict, Optional, Any
 import time
+import collections
+import numpy as np
 
 try:
     import RPi.GPIO as GPIO  # Input output pin controls
@@ -22,6 +24,7 @@ CONFIG_FILE = "configuration.json"
 DATA_FILE = "results.csv"
 ERROR_LOG = "error.txt"
 LEGAL_ANSWERS = ["L", "M", "R", "A"]
+WINDOW_LENGTH = 10
 
 # left mean: 0.128, var: 8.1756
 # right mean: 0.256, var: 16.31846
@@ -230,6 +233,10 @@ class PressurePads:
         self.middle_pressure_pad_pin = middle_pressure_pad_pin
         self.left_pressure_pad_pin = left_pressure_pad_pin
 
+        self.left_window = collections.deque(maxlen=WINDOW_LENGTH)
+        self.middle_window = collections.deque(maxlen=WINDOW_LENGTH)
+        self.right_window = collections.deque(maxlen=WINDOW_LENGTH)
+
         # create the spi bus
         if TEST_MODE:
             from test_utilities import FakeAnalogIn as AnalogIn
@@ -260,9 +267,9 @@ class PressurePads:
         # 64 -> 20g
         # 128 -> 50g
         # 192-256 -> 70g
-        self.left_threshold = 250
+        self.left_threshold = 120
         self.middle_threshold = 200
-        self.right_threshold = 150
+        self.right_threshold = 30
         # self.threshold = 200
 
     def push_init(self):
@@ -275,10 +282,19 @@ class PressurePads:
         # time.sleep(0.01)
         left_value = self.left_pressure_pad_channel.value
         # time.sleep(0.01)
-        right_pressure_pad_pressed = right_value > self.right_threshold
-        middle_pressure_pad_pressed = middle_value > self.middle_threshold
-        left_pressure_pad_pressed = left_value > self.left_threshold
+        self.left_window.append(left_value)
+        self.middle_window.append(middle_value)
+        self.right_window.append(right_value)
         print(f"registered values; left: {left_value}, middle {middle_value}, right {right_value}")
+
+        if len(self.left_window) < WINDOW_LENGTH:
+            self.push = None
+            return False
+
+        right_pressure_pad_pressed = np.mean(self.right_window) > self.right_threshold
+        middle_pressure_pad_pressed = np.mean(self.middle_window) > self.middle_threshold
+        left_pressure_pad_pressed = np.mean(self.left_window) > self.left_threshold
+
         if right_pressure_pad_pressed:
             self.push = "R"
         elif middle_pressure_pad_pressed:
