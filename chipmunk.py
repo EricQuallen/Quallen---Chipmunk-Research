@@ -287,6 +287,7 @@ class PressurePads:
         self.right_window.append(right_value)
         print(f"registered values; left: {left_value}, middle {middle_value}, right {right_value}")
 
+        time.sleep(0.01)
         if len(self.left_window) < WINDOW_LENGTH:
             self.push = None
             return False
@@ -303,7 +304,7 @@ class PressurePads:
             self.push = "L"
         else:
             self.push = None
-        time.sleep(0.1)
+
         return self.push is None
 
     def push_wait(self):  # Monitor buttons and presence/absence
