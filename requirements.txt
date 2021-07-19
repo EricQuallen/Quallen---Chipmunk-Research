@@ -1,0 +1,12 @@
+numpy
+pygame
+toml
+Adafruit-Blinka
+Adafruit-PlatformDetect
+Adafruit-PureIO
+adafruit-circuitpython-mcp3xxx
+adafruit-circuitpython-motorkit
+adafruit-circuitpython-busdevice
+adafruit-circuitpython-motor
+adafruit-circuitpython-pca9685
+adafruit-circuitpython-register

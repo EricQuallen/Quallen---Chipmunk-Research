@@ -1,8 +1,0 @@
-[
-    {"answer": "A", "repeat":  4},
-    {"answer": "L", "repeat":  1},
-    {"answer": "M", "repeat":  1},
-    {"answer": "R", "repeat":  1},
-    {"answer": ["M", "L"], "repeat":  1},
-    {"answer": ["M", "R"], "repeat":  1}
-]

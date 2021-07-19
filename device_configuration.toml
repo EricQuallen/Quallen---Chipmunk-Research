@@ -1,0 +1,62 @@
+#############################
+### Pressure pad settings ###
+#############################
+
+# How quickly the program will try to read from the pressure pads.
+# Lower values means it will take longer before you get a reading,
+# and may require the pressure pad to be pressed for a longer
+# period of time.
+pressure_pad_read_frequency = 100
+
+# How many values are used for a single reading.
+# Higher values means it will take longer to get a reading,
+# but each reading will be more accurate.
+pressure_pad_read_window = 10
+
+# The pins (or channels) that each pressure pad is connected to.
+left_pressure_pad_pin = 1
+middle_pressure_pad_pin = 2
+right_pressure_pad_pin = 3
+
+# The threhold that each pressure pad responds to.
+# The higher the value, the lower the sensitive of that pressure pad.
+#
+# Current pressure-pad calibration:
+# No weights:
+# left mean: 0.128, var: 8.1756
+# right mean: 0.256, var: 16.31846
+#
+# With weights:
+# left mean 128, var: 208.89
+# right mean: 37.568, var: 1009.38
+left_pressure_pad_threshold = 120
+middle_pressure_pad_threshold = 30
+right_pressure_pad_threshold = 30
+
+#############################
+###     Motor settings    ###
+#############################
+
+# The addresses of the two motor kits
+motor_kit_1_address = 96
+motor_kit_2_address = 97
+
+# Which conveyor is connected to which motor kit
+left_conveyor_kit = 1
+middle_conveyor_kit = 1
+right_conveyor_kit = 2
+
+# Which conveyor is associated with which stepper
+left_conveyor_stepper = "stepper1"
+middle_conveyor_stepper = "stepper2"
+right_conveyor_stepper = "stepper1"
+
+# The number of steps taken by the motor when given the signal to feed
+motor_steps = 1000
+
+#############################
+###      LED settings     ###
+#############################
+left_led_pin = 24
+middle_led_pin = 23
+right_led_pin = 25

@@ -1,5 +1,5 @@
 .*
 *.pyc
 error.txt
-results.txt
-ConfigurationFile.txt
+results.csv
+test_config.toml

@@ -2,16 +2,16 @@ import time
 import busio
 import digitalio
 import board
-import adafruit_mcp3xxx.mcp3008 as MCP
+import adafruit_mcp3xxx.mcp3008 as mcp
 from adafruit_mcp3xxx.analog_in import AnalogIn
 from adafruit_motorkit import MotorKit
 
 # create the spi bus
 spi = busio.SPI(clock=board.SCK, MISO=board.MISO, MOSI=board.MOSI)
 cs = digitalio.DigitalInOut(board.D22)
-mcp = MCP.MCP3008(spi, cs)
-chan0 = AnalogIn(mcp, MCP.P0)
-chan1 = AnalogIn(mcp, MCP.P1)
+mcp_3008 = mcp.MCP3008(spi, cs)
+chan0 = AnalogIn(mcp_3008, mcp.P0)
+chan1 = AnalogIn(mcp_3008, mcp.P1)
 
 kit = MotorKit(address=96)
 kit2 = MotorKit(address=97)
