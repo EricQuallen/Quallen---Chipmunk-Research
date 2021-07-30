@@ -1,25 +1,24 @@
 import time
 import os
-import json
+import toml
 import busio
 import digitalio
 import board
 import adafruit_mcp3xxx.mcp3008 as MCP
 from adafruit_mcp3xxx.analog_in import AnalogIn
 import numpy as np
+from chipmunk import DEVICE_CONFIGURATION_FILE
 
-
-with open(os.path.join(os.path.dirname(__file__), "pin_mapping.json")) as fh:
-    pin_settings = json.load(fh)
-print("pin_settings:", pin_settings)
+with open(os.path.join(os.path.dirname(__file__), DEVICE_CONFIGURATION_FILE)) as fh:
+    pin_settings = toml.load(fh)
 
 # create the spi bus
 spi = busio.SPI(clock=board.SCK, MISO=board.MISO, MOSI=board.MOSI)
 cs = digitalio.DigitalInOut(board.D22)
 mcp = MCP.MCP3008(spi, cs)
-left_pressure_pad = AnalogIn(mcp, pin_settings["left_pressure_pad"])
-middle_pressure_pad = AnalogIn(mcp, pin_settings["middle_pressure_pad"])
-right_pressure_pad = AnalogIn(mcp, pin_settings["right_pressure_pad"])
+left_pressure_pad = AnalogIn(mcp, pin_settings["left_pressure_pad_pin"])
+middle_pressure_pad = AnalogIn(mcp, pin_settings["middle_pressure_pad_pin"])
+right_pressure_pad = AnalogIn(mcp, pin_settings["right_pressure_pad_pin"])
 
 left_values = []
 middle_values = []
