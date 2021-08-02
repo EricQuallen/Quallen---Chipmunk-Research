@@ -140,7 +140,10 @@ class PressurePads:
                  read_frequency,
                  read_window,
                  test_mode=False,
-                 verbose=False):
+                 verbose=False,
+                 disable_left_pressure_pad=False,
+                 disable_middle_pressure_pad=False,
+                 disable_right_pressure_pad=True):
         self.push = None
         self.prev_push = None
         self.listen = False
@@ -167,9 +170,18 @@ class PressurePads:
             cs = digitalio.DigitalInOut(board.D22)
             mcp_3008 = mcp.MCP3008(spi, cs)
 
-        self.right_pressure_pad_channel = AnalogIn(mcp_3008, self.right_pressure_pad_pin)
-        self.middle_pressure_pad_channel = AnalogIn(mcp_3008, self.middle_pressure_pad_pin)
-        self.left_pressure_pad_channel = AnalogIn(mcp_3008, self.left_pressure_pad_pin)
+        if not disable_right_pressure_pad:
+            self.right_pressure_pad_channel = AnalogIn(mcp_3008, self.right_pressure_pad_pin)
+        else:
+            self.right_pressure_pad_channel = None
+        if not disable_middle_pressure_pad:
+            self.middle_pressure_pad_channel = AnalogIn(mcp_3008, self.middle_pressure_pad_pin)
+        else:
+            self.middle_pressure_pad_channel = None
+        if not disable_left_pressure_pad:
+            self.left_pressure_pad_channel = AnalogIn(mcp_3008, self.left_pressure_pad_pin)
+        else:
+            self.left_pressure_pad_channel = None
 
         self.left_threshold = left_pressure_pad_threshold
         self.middle_threshold = middle_pressure_pad_threshold
@@ -182,9 +194,18 @@ class PressurePads:
         self.prev_push = self.push
 
     def push_poll(self):
-        right_value = self.right_pressure_pad_channel.value
-        middle_value = self.middle_pressure_pad_channel.value
-        left_value = self.left_pressure_pad_channel.value
+        if self.right_pressure_pad_channel is not None:
+            right_value = self.right_pressure_pad_channel.value
+        else:
+            right_value = 0
+        if self.middle_pressure_pad_channel is not None:
+            middle_value = self.middle_pressure_pad_channel.value
+        else:
+            middle_value = 0
+        if self.left_pressure_pad_channel is not None:
+            left_value = self.left_pressure_pad_channel.value
+        else:
+            left_value = 0
         self.left_window.append(left_value)
         self.middle_window.append(middle_value)
         self.right_window.append(right_value)

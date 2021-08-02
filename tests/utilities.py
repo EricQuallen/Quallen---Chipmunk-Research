@@ -45,7 +45,8 @@ def process_events():
                 activate_input = KEY_TO_INPUT_MAP[event.key]
                 print(f"TEST_MODE: Activating {activate_input}", flush=True)
                 pin = PIN_DICT[activate_input]
-                ANALOG_CHANNELS[pin].set_value(10000)
+                if pin in ANALOG_CHANNELS:
+                    ANALOG_CHANNELS[pin].set_value(10000)
             elif event.key == pygame.K_ESCAPE:
                 raise RACExitRequest()
         elif event.type == pygame.KEYUP:
@@ -53,4 +54,5 @@ def process_events():
                 activate_input = KEY_TO_INPUT_MAP[event.key]
                 print(f"TEST_MODE: Deactivating {activate_input}", flush=True)
                 pin = PIN_DICT[activate_input]
-                ANALOG_CHANNELS[pin].set_value(0)
+                if pin in ANALOG_CHANNELS:
+                    ANALOG_CHANNELS[pin].set_value(0)
