@@ -280,11 +280,12 @@ class Leds:
         }
 
         if test_mode:
-            # noinspection PyPackageRequirements,PyUnresolvedReferences
-            import RPi.GPIO as GPIO  # Input output pin controls
-        else:
             # noinspection PyPep8Naming
             import tests.fake.fake_gpio as GPIO  # Input output pin controls
+        else:
+            # noinspection PyPackageRequirements,PyUnresolvedReferences
+            import RPi.GPIO as GPIO  # Input output pin controls
+
         self.gpio = GPIO
 
     def turn_on(self, led_id):
