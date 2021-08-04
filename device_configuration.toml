@@ -27,11 +27,12 @@ right_pressure_pad_pin = 3
 # right mean: 0.256, var: 16.31846
 #
 # With weights:
-# left mean 128, var: 208.89
-# right mean: 37.568, var: 1009.38
-left_pressure_pad_threshold = 120
-middle_pressure_pad_threshold = 30
-right_pressure_pad_threshold = 30
+# left mean: 128, var: 208.89
+# middle mean: 41
+# right mean: 326.568, var: 1523 after motor replacement
+left_pressure_pad_threshold = 100
+middle_pressure_pad_threshold = 35
+right_pressure_pad_threshold = 200
 
 #############################
 ###     Motor settings    ###
@@ -52,7 +53,7 @@ middle_conveyor_stepper = "stepper2"
 right_conveyor_stepper = "stepper1"
 
 # The number of steps taken by the motor when given the signal to feed
-motor_steps = 1000
+motor_steps = 145
 
 #############################
 ###      LED settings     ###
