@@ -31,7 +31,7 @@ right_pressure_pad_pin = 3
 # right mean: 37.568, var: 1009.38
 left_pressure_pad_threshold = 120
 middle_pressure_pad_threshold = 35
-right_pressure_pad_threshold = 30
+right_pressure_pad_threshold = 120
 
 #############################
 ###     Motor settings    ###
