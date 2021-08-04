@@ -143,7 +143,7 @@ class PressurePads:
                  verbose=False,
                  disable_left_pressure_pad=False,
                  disable_middle_pressure_pad=False,
-                 disable_right_pressure_pad=True):
+                 disable_right_pressure_pad=False):
         self.push = None
         self.prev_push = None
         self.listen = False
