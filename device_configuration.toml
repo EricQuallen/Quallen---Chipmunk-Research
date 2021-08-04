@@ -29,9 +29,9 @@ right_pressure_pad_pin = 3
 # With weights:
 # left mean 128, var: 208.89
 # right mean: 37.568, var: 1009.38
-left_pressure_pad_threshold = 120
+left_pressure_pad_threshold = 100
 middle_pressure_pad_threshold = 35
-right_pressure_pad_threshold = 120
+right_pressure_pad_threshold = 150
 
 #############################
 ###     Motor settings    ###
