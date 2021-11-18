@@ -8,6 +8,7 @@ import collections
 import numpy as np
 import argparse
 import toml
+from adafruit_motor import stepper
 
 __version__ = "v1.0 06-27-2021"
 __author__ = "J. Huizinga"
@@ -263,7 +264,7 @@ class Conveyor:
     def feed(self):
         print(f"Feeding from {self.name} conveyor")
         for i in range(self.steps_to_feed):
-            self.stepper.onestep(direction=stepper_prop.BACKWARD)
+            self.stepper.onestep(direction=stepper.BACKWARD, style=stepper.DOUBLE)
         self.times_fed += 1
 
 
