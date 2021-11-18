@@ -263,7 +263,7 @@ class Conveyor:
     def feed(self):
         print(f"Feeding from {self.name} conveyor")
         for i in range(self.steps_to_feed):
-            self.stepper.onestep()
+            self.stepper.onestep(direction=stepper_prop.BACKWARD)
         self.times_fed += 1
 
 
@@ -465,6 +465,7 @@ def main():
         tests.utilities.init(DEVICE_CONFIGURATION_FILE)
     else:
         from adafruit_motorkit import MotorKit
+        from adafruit_motor import stepper_prop
     kit1 = MotorKit(address=device_configuration["motor_kit_1_address"])
     kit2 = MotorKit(address=device_configuration["motor_kit_2_address"])
     kits = [kit1, kit2]
